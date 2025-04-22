@@ -14,13 +14,15 @@ object Task2 {
     var (sizeX, sizeY) = rows.length -> rows(0).length
     var currentXPosition = startedX
     var currentYPosition = startedY
-
-    val stones = {
-      val array = new Array[Array[Int]](sizeX)
-      for(i <- 0 until sizeX){
-        array(i) = new Array[Int](sizeY)
-      }
-      array
+    var (lastX, lastY) = 0 -> 0
+    val exitPos = {
+      val lines = Range(0, sizeX).toList
+      val linesWithValue = lines.map(_ -> List(sizeY - 1))
+      val firstLine = lines.head -> Range(0, sizeY).toList
+      val lastLine = lines.last -> Range(0, sizeY).toList
+      val changedHead = firstLine :: linesWithValue.tail
+      val changedTail = lastLine :: changedHead.reverse.tail
+      changedTail
     }
 
     def get(x:Int, y:Int) = rows(x)(y)
@@ -28,36 +30,44 @@ object Task2 {
     def get = rows(currentXPosition)(currentYPosition)
 
     def goLeft = {
+      lastX = currentXPosition
+      lastY = currentYPosition
       currentYPosition = currentYPosition - 1
-      get(currentXPosition, currentYPosition)
+      this
     }
 
     def goRight = {
+      lastX = currentXPosition
+      lastY = currentYPosition
       currentYPosition = currentYPosition + 1
-      get(currentXPosition, currentYPosition)
+      this
     }
 
     def goTop = {
+      lastX = currentXPosition
+      lastY = currentYPosition
       currentXPosition = currentXPosition - 1
-      get(currentXPosition, currentYPosition)
+      this
     }
 
     def goBottom = {
+      lastX = currentXPosition
+      lastY = currentYPosition
       currentXPosition = currentXPosition + 1
-      get(currentXPosition, currentYPosition)
+      this
     }
 
+    def onExit =
+      exitPos.exists {
+        case (index, maybeIndexes) =>
+          index == currentXPosition && maybeIndexes.contains(currentYPosition) ||
+            index == currentYPosition && maybeIndexes.contains(currentXPosition)
+      } && get != 1
   }
 
   def run(rows:Array[Array[Int]]) = {
     val matrix = Matrix.apply(rows, 3, 3)
     var go = true
-    val exitPos = List(
-      0 -> Range(0, matrix.sizeY).toList,
-      0 -> Range(0, matrix.sizeX).toList,
-      matrix.sizeY -> Range(0, matrix.sizeY).toList,
-      matrix.sizeX -> Range(0, matrix.sizeX).toList,
-    )
 
     while (go){
       val topField = matrix.copy(matrix.rows, matrix.currentXPosition, matrix.currentYPosition).goTop
@@ -65,28 +75,71 @@ object Task2 {
       val rightField = matrix.copy(matrix.rows, matrix.currentXPosition, matrix.currentYPosition).goRight
       val bottomField = matrix.copy(matrix.rows, matrix.currentXPosition, matrix.currentYPosition).goBottom
 
-      if (topField == 0)
-        matrix.goTop
-      else if (leftField == 0)
-        matrix.goLeft
-      else if (rightField == 0)
-        matrix.goRight
-      else if (bottomField == 0)
-        matrix.goBottom
+      if (topField.get == 0) {
+        var goTop = true
+        while(goTop){
+          val topField = matrix.copy(matrix.rows, matrix.currentXPosition, matrix.currentYPosition).goTop
+          if(topField.get == 0 )
+            matrix.goTop
+          else
+            goTop = false
+
+          println(matrix.currentXPosition + " : " + matrix.currentYPosition + " -> " + matrix.get)
+          if (matrix.onExit) {
+            goTop = false
+            go = false
+            println("found exit")
+          }
+        }
+      }
+      else if (leftField.get == 0)
+        var goLeft = true
+        while(goLeft){
+          val leftField = matrix.copy(matrix.rows, matrix.currentXPosition, matrix.currentYPosition).goLeft
+          if(leftField.get == 0)
+            matrix.goLeft
+          else goLeft = false
+          println(matrix.currentXPosition + " : " + matrix.currentYPosition + " -> " + matrix.get)
+          if (matrix.onExit) {
+            goLeft = false
+            go = false
+            println("found exit")
+          }
+        }
+      else if (rightField.get == 0){
+        var goRight = true
+        while(goRight){
+          val rightField = matrix.copy(matrix.rows, matrix.currentXPosition, matrix.currentYPosition).goRight
+          if(rightField.get == 0)
+            matrix.goRight
+          else goRight = false
+          println(matrix.currentXPosition + " : " + matrix.currentYPosition + " -> " + matrix.get)
+          if (matrix.onExit) {
+            goRight = false
+            go = false
+            println("found exit")
+          }
+        }
+      }
+      else if (bottomField.get == 0)
+        var goBottom = true
+        while(goBottom){
+          val bottomField = matrix.copy(matrix.rows, matrix.currentXPosition, matrix.currentYPosition).goBottom
+          if(bottomField.get == 0)
+            matrix.goBottom
+          else goBottom = false
+          println(matrix.currentXPosition + " : " + matrix.currentYPosition + " -> " + matrix.get)
+          if (matrix.onExit) {
+            goBottom = false
+            go = false
+            println("found exit")
+          }
+        }
       else{
         println("Exit not exist")
         go = false
       }
 
-      if (exitPos.exists {
-        case (index, maybeIndexes) =>
-          index == matrix.currentXPosition && maybeIndexes.contains(matrix.currentYPosition) ||
-            index == matrix.currentYPosition && maybeIndexes.contains(matrix.currentXPosition)
-      } && matrix.get != 1) {
-        go = false
-        println("found exit")
-      }
-      println(matrix.currentXPosition + " : " + matrix.currentYPosition + " -> " + matrix.get)
     }
   }
 }
